@@ -2,6 +2,7 @@ package io.quarkus.mongodb.panache.deployment;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.bson.types.ObjectId;
 import org.jboss.jandex.ClassInfo;
@@ -10,6 +11,9 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.Indexer;
 import org.jboss.jandex.Type;
 
+import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
+import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
+import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -76,6 +80,26 @@ public class PanacheResourceProcessor {
         CompositeIndex compositeIndex = CompositeIndex.create(index.getIndex(), indexer.complete());
         Type type = Type.create(DOTNAME_OBJECT_ID, Type.Kind.CLASS);
         return new ReflectiveHierarchyBuildItem(type, compositeIndex);
+    }
+
+    public static final DotName MONGOCLIENT_INTERFACE = DotName
+            .createSimple(com.mongodb.client.MongoClient.class.getName());
+
+    @BuildStep
+    void unremovableProducers(BuildProducer<UnremovableBeanBuildItem> unremovable,
+            BeanArchiveIndexBuildItem beanArchiveIndex) {
+        Type type = Type.create(MONGOCLIENT_INTERFACE, Type.Kind.CLASS);
+        unremovable.produce(
+                new UnremovableBeanBuildItem(new Predicate<BeanInfo>() {
+                    @Override
+                    public boolean test(io.quarkus.arc.processor.BeanInfo beanInfo) {
+                        io.quarkus.arc.processor.BeanInfo declaringBean = beanInfo.getDeclaringBean();
+                        return beanInfo.isProducerMethod()
+                                && beanInfo.getTypes().contains(type)
+                                && declaringBean.getBeanClass().toString()
+                                        .equals("io.quarkus.mongodb.runtime.MongoClientProducer");
+                    }
+                }));
     }
 
     @BuildStep

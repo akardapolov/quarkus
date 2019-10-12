@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.DotName;
+import org.jboss.jandex.Type;
 
 import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.builder.item.MultiBuildItem;
@@ -54,6 +55,46 @@ public final class UnremovableBeanBuildItem extends MultiBuildItem {
         @Override
         public boolean test(BeanInfo bean) {
             return classNames.contains(bean.getBeanClass().toString());
+        }
+
+    }
+
+    public static class BeanDotNameExclusion implements Predicate<BeanInfo> {
+
+        private final DotName dotName;
+
+        public BeanDotNameExclusion(DotName dotName) {
+            this.dotName = Objects.requireNonNull(dotName);
+        }
+
+        @Override
+        public boolean test(BeanInfo bean) {
+            for (Type t : bean.getTypes()) {
+                if (dotName.equals(t.name())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+    }
+
+    public static class BeanDotNamesExclusion implements Predicate<BeanInfo> {
+
+        private final Set<DotName> dotNames;
+
+        public BeanDotNamesExclusion(Set<DotName> dotNames) {
+            this.dotNames = Objects.requireNonNull(dotNames);
+        }
+
+        @Override
+        public boolean test(BeanInfo bean) {
+            for (Type t : bean.getTypes()) {
+                if (dotNames.contains(t.name())) {
+                    return true;
+                }
+            }
+            return false;
         }
 
     }
