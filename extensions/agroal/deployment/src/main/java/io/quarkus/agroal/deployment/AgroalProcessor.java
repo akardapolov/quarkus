@@ -18,7 +18,6 @@ import javax.sql.XADataSource;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.DotName;
-import org.jboss.jandex.Type;
 import org.jboss.logging.Logger;
 
 import io.agroal.api.AgroalDataSource;
@@ -210,16 +209,7 @@ class AgroalProcessor {
 
     @BuildStep
     UnremovableBeanBuildItem markBeansAsUnremovable() {
-        return new UnremovableBeanBuildItem(beanInfo -> {
-            Set<Type> types = beanInfo.getTypes();
-            for (Type t : types) {
-                if (UNREMOVABLE_BEANS.contains(t.name())) {
-                    return true;
-                }
-            }
-
-            return false;
-        });
+        return new UnremovableBeanBuildItem(new UnremovableBeanBuildItem.BeanDotNamesExclusion(UNREMOVABLE_BEANS));
     }
 
     /**
